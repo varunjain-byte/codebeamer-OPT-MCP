@@ -2,7 +2,7 @@
 
 ## 📦 What is This?
 
-This is an **MCP (Model Context Protocol) server** that exposes the Codebeamer Smart Tool as **12 efficient tools** that can be used by AI agents like Claude.
+This is an **MCP (Model Context Protocol) server** that exposes the Codebeamer Smart Tool as **12 efficient tools** that can be used by **GitHub Copilot**.
 
 Instead of 30+ individual API tools, you now have **12 high-level tools** that:
 - ✅ Reduce API calls by 70-98%
@@ -156,21 +156,25 @@ Clear cache when data needs to be refreshed.
 
 ## 🔧 MCP Client Configuration
 
-### For Claude Desktop or Other MCP Clients
+### For GitHub Copilot
 
-Add to your MCP client configuration:
+Add to your VS Code settings (`settings.json`):
 
 ```json
 {
-  "mcpServers": {
-    "codebeamer": {
-      "command": "python",
-      "args": ["/Users/varunjain/Codebeamer MCP -opt/mcp_server.py"],
-      "env": {
-        "CODEBEAMER_URL": "https://your-codebeamer-instance.com",
-        "CODEBEAMER_API_KEY": "your-api-key-here",
-        "CODEBEAMER_MAX_CALLS": "60",
-        "CODEBEAMER_CACHE_TTL": "300"
+  "github.copilot.advanced": {
+    "mcp": {
+      "servers": {
+        "codebeamer": {
+          "command": "python",
+          "args": ["C:/Users/varunjain/Codebeamer MCP -opt/mcp_server.py"],
+          "env": {
+            "CODEBEAMER_URL": "https://your-codebeamer-instance.com",
+            "CODEBEAMER_API_KEY": "your-api-key-here",
+            "CODEBEAMER_MAX_CALLS": "60",
+            "CODEBEAMER_CACHE_TTL": "300"
+          }
+        }
       }
     }
   }
@@ -290,7 +294,7 @@ Returns:
 2. **Set environment variables:** Configure your Codebeamer URL and API key
 3. **Update HTTP client:** Add actual HTTP implementation in `codebeamer_smart_tool.py`
 4. **Test the server:** Run `python mcp_server.py`
-5. **Configure MCP client:** Add server to your MCP client config
+5. **Configure GitHub Copilot:** Add server to your VS Code settings.
 6. **Start using!** Use the 12 efficient tools instead of 30+ individual APIs
 
 ---

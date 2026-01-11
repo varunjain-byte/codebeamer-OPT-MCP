@@ -124,7 +124,7 @@ python mcp_server.py
 graph TD
     subgraph Client ["Client Layer"]
         A[AI Agent / Copilot]
-        B[MCP Client Config]
+        B[VS Code Settings]
     end
 
     subgraph Server ["MCP Server Layer"]
@@ -174,7 +174,7 @@ graph TD
 ```
 ┌─────────────┐
 │  AI Agent   │
-│  (Claude)   │
+│  (Copilot)  │
 └──────┬──────┘
        │
        ▼
@@ -243,17 +243,21 @@ export CODEBEAMER_API_KEY="your-api-key"
 ### 3. Update HTTP Client
 Edit `codebeamer_smart_tool.py` line 135 to add actual HTTP calls (see `SETUP_GUIDE.md` for code).
 
-### 4. Configure MCP Client
-Add to your MCP client config (e.g., Claude Desktop):
+### 4. Configure GitHub Copilot
+Add to your VS Code settings (`settings.json`):
 ```json
 {
-  "mcpServers": {
-    "codebeamer": {
-      "command": "python",
-      "args": ["/Users/varunjain/Codebeamer MCP -opt/mcp_server.py"],
-      "env": {
-        "CODEBEAMER_URL": "https://your-instance.com",
-        "CODEBEAMER_API_KEY": "your-key"
+  "github.copilot.advanced": {
+    "mcp": {
+      "servers": {
+        "codebeamer": {
+          "command": "python",
+          "args": ["C:/Users/varunjain/Codebeamer MCP -opt/mcp_server.py"],
+          "env": {
+            "CODEBEAMER_URL": "https://your-instance.com",
+            "CODEBEAMER_API_KEY": "your-key"
+          }
+        }
       }
     }
   }

@@ -118,10 +118,10 @@
 
 ## 📝 File Locations
 
-All files created in: `/Users/varunjain/Downloads/`
+All files created in: `/Users/varunjain/Codebeamer MCP -opt/`
 
 ```
-/Users/varunjain/Downloads/
+/Users/varunjain/Codebeamer MCP -opt/
 ├── codebeamer_smart_tool.py       # Main implementation (650 lines)
 ├── CODEBEAMER_TOOL_GUIDE.md       # Full documentation (500+ lines)
 ├── example_usage.py                # Working examples (200+ lines)
@@ -148,7 +148,7 @@ All files created in: `/Users/varunjain/Downloads/`
 ### Step 3: Integrate ⏳
 - [ ] Replace individual API tools
 - [ ] Expose `CodebeamerSmartTool` as single tool
-- [ ] Test with your agent
+- [ ] Test with GitHub Copilot
 - [ ] Monitor statistics
 
 ### Step 4: Optimize ⏳
@@ -254,4 +254,4 @@ All files created in: `/Users/varunjain/Downloads/`
 ---
 
 *Generated: 2026-01-11*  
-*All files created in: `/Users/varunjain/Downloads/`*
+*All files created in: `/Users/varunjain/Codebeamer MCP -opt/`*

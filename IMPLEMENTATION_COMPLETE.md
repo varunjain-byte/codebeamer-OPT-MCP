@@ -151,18 +151,22 @@ You should see:
    Tools: 12
 ```
 
-### Step 5: Configure MCP Client
-Add to your MCP client configuration (e.g., Claude Desktop `config.json`):
+### Step 5: Configure GitHub Copilot
+Add to your VS Code settings (`settings.json`):
 
 ```json
 {
-  "mcpServers": {
-    "codebeamer": {
-      "command": "python",
-      "args": ["/Users/varunjain/Codebeamer MCP -opt/mcp_server.py"],
-      "env": {
-        "CODEBEAMER_URL": "https://your-instance.com",
-        "CODEBEAMER_API_KEY": "your-key"
+  "github.copilot.advanced": {
+    "mcp": {
+      "servers": {
+        "codebeamer": {
+          "command": "python",
+          "args": ["C:/Users/varunjain/Codebeamer MCP -opt/mcp_server.py"],
+          "env": {
+            "CODEBEAMER_URL": "https://your-instance.com",
+            "CODEBEAMER_API_KEY": "your-key"
+          }
+        }
       }
     }
   }
