@@ -1,0 +1,8 @@
+# MCP Server Dependencies
+mcp>=0.9.0
+
+# HTTP Client
+requests>=2.31.0
+
+# Optional: Async HTTP client (if needed)
+# httpx>=0.25.0

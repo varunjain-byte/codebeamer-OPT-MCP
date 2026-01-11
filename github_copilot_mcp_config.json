@@ -1,0 +1,16 @@
+{
+    "servers": {
+        "codebeamer": {
+            "command": "python",
+            "args": [
+                "C:\\Users\\varunjain\\Codebeamer MCP -opt\\mcp_server.py"
+            ],
+            "env": {
+                "CODEBEAMER_URL": "https://your-codebeamer-instance.com",
+                "CODEBEAMER_API_KEY": "your-api-key-here",
+                "CODEBEAMER_MAX_CALLS": "60",
+                "CODEBEAMER_CACHE_TTL": "300"
+            }
+        }
+    }
+}
