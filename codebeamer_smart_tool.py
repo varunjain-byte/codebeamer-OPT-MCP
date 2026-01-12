@@ -7,6 +7,7 @@ that minimizes API calls and handles rate limiting.
 import time
 import hashlib
 import json
+import requests
 from typing import Dict, List, Optional, Any, Literal
 from datetime import datetime, timedelta
 from dataclasses import dataclass, asdict
@@ -143,10 +144,11 @@ class CodebeamerSmartTool:
     ) -> Any:
         """
         Make an API call with rate limiting and caching
-        
-        NOTE: This is a TEMPLATE method. In actual implementation,
-        replace this with your HTTP library (requests, httpx, etc.)
         """
+        # Ensure endpoint starts with /
+        if not endpoint.startswith('/'):
+            endpoint = f'/{endpoint}'
+            
         cache_key = self._generate_cache_key(endpoint, params or {})
         
         # Check cache for GET requests
@@ -162,38 +164,62 @@ class CodebeamerSmartTool:
         url = f"{self.base_url}{endpoint}"
         headers = {
             'Authorization': f'Bearer {self.api_key}',
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
         }
         
         print(f"🌐 API Call: {method} {endpoint}")
         self.stats['api_calls'] += 1
         
-        # TODO: Replace with actual HTTP call
-        # Example with requests library:
-        # import requests
-        # response = requests.request(
-        #     method=method,
-        #     url=url,
-        #     headers=headers,
-        #     params=params,
-        #     json=body
-        # )
-        # response.raise_for_status()
-        # data = response.json()
-        
-        # Placeholder for demonstration
-        data = {
-            "message": f"API call to {endpoint}",
-            "method": method,
-            "params": params,
-            "body": body
-        }
-        
-        # Cache GET responses
-        if method == 'GET' and use_cache:
-            self._set_cache(cache_key, data, cache_ttl)
-        
-        return data
+        try:
+            response = requests.request(
+                method=method,
+                url=url,
+                headers=headers,
+                params=params,
+                json=body,
+                timeout=30  # 30 seconds timeout
+            )
+            
+            # Handle successful response
+            if response.status_code in (200, 201):
+                # Try to parse JSON, handle empty responses
+                try:
+                    data = response.json()
+                except json.JSONDecodeError:
+                    data = {} if response.content else None
+                
+                # Cache GET responses
+                if method == 'GET' and use_cache:
+                    self._set_cache(cache_key, data, cache_ttl)
+                
+                return data
+                
+            # Handle errors
+            else:
+                print(f"❌ API Error {response.status_code}: {response.text}")
+                # Create detailed error structure
+                error_data = {
+                    "error": True,
+                    "status_code": response.status_code,
+                    "message": f"API request failed with status {response.status_code}",
+                    "details": response.text
+                }
+                # Try to parse detailed error from response
+                try:
+                    error_json = response.json()
+                    error_data.update(error_json)
+                except:
+                    pass
+                    
+                return error_data
+                
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Connection Error: {str(e)}")
+            return {
+                "error": True,
+                "message": f"Network error: {str(e)}"
+            }
     
     def _build_cbql_query(
         self,
