@@ -274,7 +274,8 @@ class CodebeamerSmartTool:
         statuses: Optional[List[str]] = None,
         custom_filters: Optional[Dict[str, Any]] = None,
         include_fields: Optional[List[str]] = None,
-        max_results: int = 100
+        max_results: int = 100,
+        use_cache: bool = True
     ) -> Dict[str, Any]:
         """
         Efficient query using CbQL - replaces multiple get_projects -> get_trackers -> get_items calls
@@ -308,7 +309,7 @@ class CodebeamerSmartTool:
             method='POST',
             endpoint='/v3/items/query',
             body=body,
-            use_cache=True,
+            use_cache=use_cache,
             cache_ttl=180  # 3 minutes for query results
         )
         
@@ -353,15 +354,16 @@ class CodebeamerSmartTool:
                 endpoint=f'/v3/projects/{project_id}/trackers'
             )
             
-            if include_items and result['trackers']:
+            if include_items and result['trackers'] and isinstance(result['trackers'], list):
                 # Get all items across all trackers in ONE CbQL query
-                tracker_ids = [t['id'] for t in result['trackers']]
-                items_result = self.query_items(
-                    project_ids=[project_id],
-                    tracker_ids=tracker_ids,
-                    max_results=1000
-                )
-                result['items'] = items_result.get('items', [])
+                tracker_ids = [t.get('id') for t in result['trackers'] if isinstance(t, dict)]
+                if tracker_ids:
+                    items_result = self.query_items(
+                        project_ids=[project_id],
+                        tracker_ids=tracker_ids,
+                        max_results=1000
+                    )
+                    result['items'] = items_result.get('items', [])
         
         if include_wiki:
             # Note: Would need project's wiki page IDs
@@ -627,11 +629,16 @@ class CodebeamerSmartTool:
                 cache_ttl=600  # 10 minutes
             )
             
-            for child in children:
-                child['children'] = build_tree(
-                    f"/v3/items/{child['id']}/children",
-                    depth + 1
-                )
+            if isinstance(children, list):
+                for child in children:
+                    if isinstance(child, dict):
+                        child['children'] = build_tree(
+                            f"/v3/items/{child.get('id')}/children",
+                            depth + 1
+                        )
+            else:
+                # Handle error or empty response
+                return []
             
             return children
         
