@@ -18,7 +18,9 @@ def demonstrate_efficiency():
         base_url="https://your-codebeamer.com",
         api_key="your-api-key",
         max_calls_per_minute=60,
-        default_cache_ttl=300
+        default_cache_ttl=300,
+        # Set to False if using self-signed certificates
+        ssl_verify=False  
     )
     
     # ========================================

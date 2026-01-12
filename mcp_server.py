@@ -22,6 +22,16 @@ CODEBEAMER_URL = os.getenv("CODEBEAMER_URL", "https://your-codebeamer.com")
 CODEBEAMER_API_KEY = os.getenv("CODEBEAMER_API_KEY", "")
 MAX_CALLS_PER_MINUTE = int(os.getenv("CODEBEAMER_MAX_CALLS", "60"))
 CACHE_TTL = int(os.getenv("CODEBEAMER_CACHE_TTL", "300"))
+SSL_VERIFY_ENV = os.getenv("CODEBEAMER_SSL_VERIFY", "True")
+
+# Parse SSL verify setting
+if SSL_VERIFY_ENV.lower() == "false":
+    SSL_VERIFY = False
+elif SSL_VERIFY_ENV.lower() == "true":
+    SSL_VERIFY = True
+else:
+    # Treat as path to certificate
+    SSL_VERIFY = SSL_VERIFY_ENV
 
 # Global tool instance
 codebeamer_tool = None
@@ -37,7 +47,8 @@ def initialize_tool():
         base_url=CODEBEAMER_URL,
         api_key=CODEBEAMER_API_KEY,
         max_calls_per_minute=MAX_CALLS_PER_MINUTE,
-        default_cache_ttl=CACHE_TTL
+        default_cache_ttl=CACHE_TTL,
+        ssl_verify=SSL_VERIFY
     )
     return codebeamer_tool
 
@@ -500,6 +511,7 @@ async def main():
         print(f"   URL: {CODEBEAMER_URL}")
         print(f"   Max calls/min: {MAX_CALLS_PER_MINUTE}")
         print(f"   Cache TTL: {CACHE_TTL}s")
+        print(f"   SSL Verify: {SSL_VERIFY}")
         print(f"   Tools: {len(MCP_TOOLS)}")
     except Exception as e:
         print(f"❌ Failed to initialize: {e}")

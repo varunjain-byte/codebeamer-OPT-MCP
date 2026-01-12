@@ -92,13 +92,15 @@ class CodebeamerSmartTool:
         base_url: str,
         api_key: str,
         max_calls_per_minute: int = 60,
-        default_cache_ttl: int = 300
+        default_cache_ttl: int = 300,
+        ssl_verify: Any = True
     ):
         self.base_url = base_url.rstrip('/')
         self.api_key = api_key
         self.cache: Dict[str, CacheEntry] = {}
         self.rate_limiter = RateLimiter(max_calls_per_minute)
         self.default_cache_ttl = default_cache_ttl
+        self.ssl_verify = ssl_verify
         self.stats = {
             'api_calls': 0,
             'cache_hits': 0,
@@ -176,9 +178,11 @@ class CodebeamerSmartTool:
                 method=method,
                 url=url,
                 headers=headers,
+                headers=headers,
                 params=params,
                 json=body,
-                timeout=30  # 30 seconds timeout
+                timeout=30,  # 30 seconds timeout
+                verify=self.ssl_verify
             )
             
             # Handle successful response
@@ -214,6 +218,15 @@ class CodebeamerSmartTool:
                     
                 return error_data
                 
+                return error_data
+                
+        except requests.exceptions.SSLError as e:
+            print(f"❌ SSL Verification Error: {str(e)}")
+            return {
+                "error": True,
+                "message": f"SSL verification failed. Try setting CODEBEAMER_SSL_VERIFY=False if using self-signed certs.",
+                "details": str(e)
+            }
         except requests.exceptions.RequestException as e:
             print(f"❌ Connection Error: {str(e)}")
             return {
