@@ -7,6 +7,7 @@ Exposes the Codebeamer Smart Tool as an MCP (Model Context Protocol) server
 import asyncio
 import json
 import os
+import sys
 from typing import Any, Dict, List, Optional
 
 from mcp.server import Server
@@ -504,17 +505,22 @@ async def call_tool(name: str, arguments: Any) -> List[TextContent]:
 
 async def main():
     """Run the MCP server"""
+    # Force UTF-8 encoding for stdout/stdin/stderr
+    if sys.platform == 'win32':
+        sys.stdin.reconfigure(encoding='utf-8')
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
     # Initialize the tool on startup
     try:
         initialize_tool()
-        print(f"✅ Codebeamer MCP Server initialized")
+        print(f"Codebeamer MCP Server initialized")
         print(f"   URL: {CODEBEAMER_URL}")
         print(f"   Max calls/min: {MAX_CALLS_PER_MINUTE}")
         print(f"   Cache TTL: {CACHE_TTL}s")
         print(f"   SSL Verify: {SSL_VERIFY}")
         print(f"   Tools: {len(MCP_TOOLS)}")
     except Exception as e:
-        print(f"❌ Failed to initialize: {e}")
+        print(f"Failed to initialize: {e}")
         print(f"   Make sure CODEBEAMER_API_KEY environment variable is set")
         return
     

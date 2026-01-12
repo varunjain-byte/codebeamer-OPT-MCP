@@ -61,7 +61,7 @@ class RateLimiter:
             oldest = self.call_timestamps[0]
             wait_time = self.window - (now - oldest) + 0.1
             if wait_time > 0:
-                print(f"⏳ Rate limit approaching, waiting {wait_time:.1f}s...")
+                print(f"Rate limit approaching, waiting {wait_time:.1f}s...")
                 time.sleep(wait_time)
                 # Clear old timestamps after waiting
                 self.call_timestamps = []
@@ -118,7 +118,7 @@ class CodebeamerSmartTool:
             entry = self.cache[cache_key]
             if not entry.is_expired():
                 self.stats['cache_hits'] += 1
-                print(f"✅ Cache hit: {cache_key[:8]}...")
+                print(f"Cache hit: {cache_key[:8]}...")
                 return entry.data
             else:
                 del self.cache[cache_key]
@@ -170,14 +170,13 @@ class CodebeamerSmartTool:
             'Accept': 'application/json'
         }
         
-        print(f"🌐 API Call: {method} {endpoint}")
+        print(f"API Call: {method} {endpoint}")
         self.stats['api_calls'] += 1
         
         try:
             response = requests.request(
                 method=method,
                 url=url,
-                headers=headers,
                 headers=headers,
                 params=params,
                 json=body,
@@ -201,7 +200,7 @@ class CodebeamerSmartTool:
                 
             # Handle errors
             else:
-                print(f"❌ API Error {response.status_code}: {response.text}")
+                print(f"API Error {response.status_code}: {response.text}")
                 # Create detailed error structure
                 error_data = {
                     "error": True,
@@ -221,14 +220,14 @@ class CodebeamerSmartTool:
                 return error_data
                 
         except requests.exceptions.SSLError as e:
-            print(f"❌ SSL Verification Error: {str(e)}")
+            print(f"SSL Verification Error: {str(e)}")
             return {
                 "error": True,
                 "message": f"SSL verification failed. Try setting CODEBEAMER_SSL_VERIFY=False if using self-signed certs.",
                 "details": str(e)
             }
         except requests.exceptions.RequestException as e:
-            print(f"❌ Connection Error: {str(e)}")
+            print(f"Connection Error: {str(e)}")
             return {
                 "error": True,
                 "message": f"Network error: {str(e)}"
@@ -316,7 +315,7 @@ class CodebeamerSmartTool:
             'pageSize': max_results
         }
         
-        print(f"🔍 Executing CbQL query: {cbql}")
+        print(f"Executing CbQL query: {cbql}")
         
         result = self._make_api_call(
             method='POST',
@@ -432,7 +431,7 @@ class CodebeamerSmartTool:
                     )
                     result['fields_metadata'][field_id] = field_meta
                 except Exception as e:
-                    print(f"⚠️ Could not fetch field {field_id}: {e}")
+                    print(f"Could not fetch field {field_id}: {e}")
         
         return result
     
@@ -718,7 +717,7 @@ class CodebeamerSmartTool:
     def print_stats(self):
         """Print usage statistics"""
         stats = self.get_stats()
-        print("\n📊 Codebeamer Smart Tool Statistics:")
+        print("\nCodebeamer Smart Tool Statistics:")
         print(f"   API Calls Made: {stats['api_calls']}")
         print(f"   Cache Hits: {stats['cache_hits']}")
         print(f"   Cache Misses: {stats['cache_misses']}")
