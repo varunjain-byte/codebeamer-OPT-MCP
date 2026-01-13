@@ -23,7 +23,7 @@ CODEBEAMER_URL = os.getenv("CODEBEAMER_URL", "https://your-codebeamer.com")
 CODEBEAMER_API_KEY = os.getenv("CODEBEAMER_API_KEY", "")
 MAX_CALLS_PER_MINUTE = int(os.getenv("CODEBEAMER_MAX_CALLS", "60"))
 CACHE_TTL = int(os.getenv("CODEBEAMER_CACHE_TTL", "300"))
-SSL_VERIFY_ENV = os.getenv("CODEBEAMER_SSL_VERIFY", "True")
+SSL_VERIFY_ENV = os.getenv("CODEBEAMER_SSL_VERIFY", r"/path/to/certificate.crt")
 
 # Parse SSL verify setting
 if SSL_VERIFY_ENV.lower() == "false":
