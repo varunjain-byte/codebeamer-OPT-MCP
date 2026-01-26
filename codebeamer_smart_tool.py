@@ -277,7 +277,44 @@ class CodebeamerSmartTool:
     # HIGH-LEVEL OPERATIONS
     # ===========================
     
+    def list_projects(
+        self,
+        page: int = 1,
+        page_size: int = 100,
+        use_cache: bool = True
+    ) -> Dict[str, Any]:
+        """
+        List all available projects in Codebeamer.
+        
+        This is the recommended FIRST CALL when starting to explore Codebeamer.
+        Returns project IDs needed for subsequent queries.
+        
+        Args:
+            page: Page number (1-indexed)
+            page_size: Number of projects per page (1-500, default 100)
+            use_cache: Whether to use cached results (default True)
+            
+        Returns:
+            Dict with 'projects' list and pagination info
+        """
+        # Codebeamer V3 API uses page/pageSize for pagination
+        params = {
+            'page': page,
+            'pageSize': min(page_size, 500)  # API max is 500
+        }
+        
+        result = self._make_api_call(
+            method='GET',
+            endpoint='/v3/projects',
+            params=params,
+            use_cache=use_cache,
+            cache_ttl=600  # 10 minutes - projects rarely change
+        )
+        
+        return result
+    
     def query_items(
+
         self,
         project_ids: Optional[List[int]] = None,
         tracker_ids: Optional[List[int]] = None,

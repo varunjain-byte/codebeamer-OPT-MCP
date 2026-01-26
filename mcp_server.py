@@ -2,9 +2,14 @@
 """
 Codebeamer MCP Server
 Exposes the Codebeamer Smart Tool as an MCP (Model Context Protocol) server
+
+Supports two transport modes:
+- STDIO: For local development and CLI tools (default for backwards compatibility)
+- HTTP: For container/OpenShift deployment (set MCP_TRANSPORT=http)
 """
 
 import asyncio
+import contextlib
 import json
 import os
 import sys
@@ -57,7 +62,35 @@ def initialize_tool():
 # Define MCP Tools
 MCP_TOOLS = [
     Tool(
+        name="codebeamer_list_projects",
+        description="""
+        List all available projects in Codebeamer. 
+        
+        RECOMMENDED FIRST CALL - Use this to discover project IDs before querying items.
+        Returns project names, IDs, descriptions, and other metadata.
+        
+        Supports pagination for large Codebeamer instances.
+        """,
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "page": {
+                    "type": "integer",
+                    "default": 1,
+                    "description": "Page number (1-indexed)"
+                },
+                "page_size": {
+                    "type": "integer",
+                    "default": 100,
+                    "description": "Number of projects per page (1-500)"
+                }
+            }
+        }
+    ),
+    
+    Tool(
         name="codebeamer_query_items",
+
         description="""
         Query Codebeamer items efficiently using CbQL. This is the MOST EFFICIENT method.
         Replaces multiple get_projects -> get_trackers -> get_items calls with a single CbQL query.
@@ -441,7 +474,10 @@ async def call_tool(name: str, arguments: Any) -> List[TextContent]:
     
     try:
         # Route to appropriate method
-        if name == "codebeamer_query_items":
+        if name == "codebeamer_list_projects":
+            result = codebeamer_tool.list_projects(**arguments)
+        
+        elif name == "codebeamer_query_items":
             result = codebeamer_tool.query_items(**arguments)
         
         elif name == "codebeamer_get_project_complete":
@@ -503,31 +539,119 @@ async def call_tool(name: str, arguments: Any) -> List[TextContent]:
         ]
 
 
-async def main():
-    """Run the MCP server"""
-    # Force UTF-8 encoding for stdout/stdin/stderr
+# Transport configuration
+MCP_TRANSPORT = os.getenv("MCP_TRANSPORT", "stdio").lower()  # "stdio" or "http"
+MCP_HOST = os.getenv("MCP_HOST", "0.0.0.0")
+MCP_PORT = int(os.getenv("MCP_PORT", "8080"))
+
+
+def print_startup_info():
+    """Print server startup information"""
+    print(f"Codebeamer MCP Server initialized")
+    print(f"   URL: {CODEBEAMER_URL}")
+    print(f"   Max calls/min: {MAX_CALLS_PER_MINUTE}")
+    print(f"   Cache TTL: {CACHE_TTL}s")
+    print(f"   SSL Verify: {SSL_VERIFY}")
+    print(f"   Tools: {len(MCP_TOOLS)}")
+    print(f"   Transport: {MCP_TRANSPORT}")
+
+
+async def run_stdio():
+    """Run MCP server with STDIO transport (local/CLI mode)"""
+    # Force UTF-8 encoding for stdout/stdin/stderr on Windows
     if sys.platform == 'win32':
         sys.stdin.reconfigure(encoding='utf-8')
         sys.stdout.reconfigure(encoding='utf-8')
         sys.stderr.reconfigure(encoding='utf-8')
-    # Initialize the tool on startup
-    try:
-        initialize_tool()
-        print(f"Codebeamer MCP Server initialized")
-        print(f"   URL: {CODEBEAMER_URL}")
-        print(f"   Max calls/min: {MAX_CALLS_PER_MINUTE}")
-        print(f"   Cache TTL: {CACHE_TTL}s")
-        print(f"   SSL Verify: {SSL_VERIFY}")
-        print(f"   Tools: {len(MCP_TOOLS)}")
-    except Exception as e:
-        print(f"Failed to initialize: {e}")
-        print(f"   Make sure CODEBEAMER_API_KEY environment variable is set")
-        return
     
-    # Run the server
     async with stdio_server() as (read_stream, write_stream):
         await app.run(read_stream, write_stream, app.create_initialization_options())
 
 
+def run_http():
+    """Run MCP server with HTTP transport (container/OpenShift mode)"""
+    try:
+        import uvicorn
+        from starlette.applications import Starlette
+        from starlette.routing import Route
+        from starlette.responses import JSONResponse
+        from mcp.server.streamable_http import StreamableHTTPServerTransport
+    except ImportError as e:
+        print(f"HTTP transport requires additional dependencies: {e}")
+        print("Install with: pip install uvicorn starlette")
+        sys.exit(1)
+    
+    # Create HTTP transport
+    transport = StreamableHTTPServerTransport("/mcp")
+    
+    # Health check endpoint for OpenShift/Kubernetes probes
+    async def health_check(request):
+        return JSONResponse({
+            "status": "healthy",
+            "service": "codebeamer-mcp-server",
+            "tools_count": len(MCP_TOOLS),
+            "codebeamer_url": CODEBEAMER_URL
+        })
+    
+    # Readiness check - verifies Codebeamer connection
+    async def readiness_check(request):
+        try:
+            if codebeamer_tool is None:
+                return JSONResponse({"status": "not_ready", "reason": "tool_not_initialized"}, status_code=503)
+            return JSONResponse({"status": "ready"})
+        except Exception as e:
+            return JSONResponse({"status": "not_ready", "reason": str(e)}, status_code=503)
+    
+    @contextlib.asynccontextmanager
+    async def lifespan(app_instance):
+        # Run the MCP server as a background task
+        async with transport.connect() as streams:
+            task = asyncio.create_task(
+                app.run(streams[0], streams[1], app.create_initialization_options())
+            )
+            try:
+                yield
+            finally:
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+    
+    # Create Starlette app with MCP endpoint and health checks
+    starlette_app = Starlette(
+        routes=[
+            Route("/health", health_check, methods=["GET"]),
+            Route("/ready", readiness_check, methods=["GET"]),
+            Route("/mcp", transport.handle_request, methods=["GET", "POST", "DELETE"]),
+        ],
+        lifespan=lifespan
+    )
+    
+    print(f"   HTTP Endpoint: http://{MCP_HOST}:{MCP_PORT}/mcp")
+    print(f"   Health Check: http://{MCP_HOST}:{MCP_PORT}/health")
+    print(f"   Readiness Check: http://{MCP_HOST}:{MCP_PORT}/ready")
+    
+    uvicorn.run(starlette_app, host=MCP_HOST, port=MCP_PORT)
+
+
+def main():
+    """Run the MCP server with configured transport"""
+    # Initialize the tool on startup
+    try:
+        initialize_tool()
+        print_startup_info()
+    except Exception as e:
+        print(f"Failed to initialize: {e}")
+        print(f"   Make sure CODEBEAMER_API_KEY environment variable is set")
+        sys.exit(1)
+    
+    # Run with selected transport
+    if MCP_TRANSPORT == "http":
+        run_http()
+    else:
+        asyncio.run(run_stdio())
+
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
