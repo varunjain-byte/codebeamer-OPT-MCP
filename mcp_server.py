@@ -573,16 +573,16 @@ def run_http():
     try:
         import uvicorn
         from starlette.applications import Starlette
-        from starlette.routing import Route
+        from starlette.routing import Route, Mount
         from starlette.responses import JSONResponse
-        from mcp.server.streamable_http import StreamableHTTPServerTransport
+        from mcp.server.sse import SseServerTransport
     except ImportError as e:
         print(f"HTTP transport requires additional dependencies: {e}")
         print("Install with: pip install uvicorn starlette")
         sys.exit(1)
     
-    # Create HTTP transport
-    transport = StreamableHTTPServerTransport("/mcp")
+    # Create SSE transport for HTTP connections
+    sse_transport = SseServerTransport("/messages/")
     
     # Health check endpoint for OpenShift/Kubernetes probes
     async def health_check(request):
@@ -602,37 +602,36 @@ def run_http():
         except Exception as e:
             return JSONResponse({"status": "not_ready", "reason": str(e)}, status_code=503)
     
-    @contextlib.asynccontextmanager
-    async def lifespan(app_instance):
-        # Run the MCP server as a background task
-        async with transport.connect() as streams:
-            task = asyncio.create_task(
-                app.run(streams[0], streams[1], app.create_initialization_options())
+    # Handle SSE connections
+    async def handle_sse(request):
+        async with sse_transport.connect_sse(
+            request.scope, request.receive, request._send
+        ) as streams:
+            await app.run(
+                streams[0], streams[1], app.create_initialization_options()
             )
-            try:
-                yield
-            finally:
-                task.cancel()
-                try:
-                    await task
-                except asyncio.CancelledError:
-                    pass
     
-    # Create Starlette app with MCP endpoint and health checks
+    # Handle message posts
+    async def handle_messages(request):
+        await sse_transport.handle_post_message(request.scope, request.receive, request._send)
+    
+    # Create Starlette app with all endpoints
     starlette_app = Starlette(
         routes=[
             Route("/health", health_check, methods=["GET"]),
             Route("/ready", readiness_check, methods=["GET"]),
-            Route("/mcp", transport.handle_request, methods=["GET", "POST", "DELETE"]),
+            Route("/sse", handle_sse, methods=["GET"]),
+            Route("/messages/", handle_messages, methods=["POST"]),
         ],
-        lifespan=lifespan
     )
     
-    print(f"   HTTP Endpoint: http://{MCP_HOST}:{MCP_PORT}/mcp")
+    print(f"   SSE Endpoint: http://{MCP_HOST}:{MCP_PORT}/sse")
+    print(f"   Messages Endpoint: http://{MCP_HOST}:{MCP_PORT}/messages/")
     print(f"   Health Check: http://{MCP_HOST}:{MCP_PORT}/health")
     print(f"   Readiness Check: http://{MCP_HOST}:{MCP_PORT}/ready")
     
     uvicorn.run(starlette_app, host=MCP_HOST, port=MCP_PORT)
+
 
 
 def main():
