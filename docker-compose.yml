@@ -16,12 +16,18 @@ services:
       - MCP_HOST=0.0.0.0
       - MCP_PORT=8080
 
-      # SSL Configuration (set to false for self-signed certs)
-      - CODEBEAMER_SSL_VERIFY=${CODEBEAMER_SSL_VERIFY:-true}
+      # SSL Configuration
+      # Option 1: Set to "false" to disable SSL verification
+      # Option 2: Set to "/app/certs/your-cert.crt" to use mounted certificate
+      - CODEBEAMER_SSL_VERIFY=${CODEBEAMER_SSL_VERIFY:-/app/certs/corporate.crt}
 
       # Optional tuning
       - CODEBEAMER_MAX_CALLS=${CODEBEAMER_MAX_CALLS:-60}
       - CODEBEAMER_CACHE_TTL=${CODEBEAMER_CACHE_TTL:-300}
+
+    # Mount your SSL certificate here
+    volumes:
+      - ./certs:/app/certs:ro # Place your .crt file in ./certs/ folder
 
     healthcheck:
       test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')" ]
