@@ -289,6 +289,8 @@ class CodebeamerSmartTool:
         This is the recommended FIRST CALL when starting to explore Codebeamer.
         Returns project IDs needed for subsequent queries.
         
+        Uses REST API v1 endpoint which is available in most Codebeamer versions.
+        
         Args:
             page: Page number (1-indexed)
             page_size: Number of projects per page (1-500, default 100)
@@ -297,21 +299,28 @@ class CodebeamerSmartTool:
         Returns:
             Dict with 'projects' list and pagination info
         """
-        # Codebeamer V3 API uses page/pageSize for pagination
-        params = {
-            'page': page,
-            'pageSize': min(page_size, 500)  # API max is 500
-        }
-        
+        # Try REST API v1 first (more widely available)
+        # Endpoint: /rest/projects/page/{page}
         result = self._make_api_call(
             method='GET',
-            endpoint='/v3/projects',
-            params=params,
+            endpoint=f'/rest/projects/page/{page}',
+            params={'pageSize': min(page_size, 500)},
             use_cache=use_cache,
             cache_ttl=600  # 10 minutes - projects rarely change
         )
         
+        # If v1 fails, try v3 endpoint as fallback
+        if isinstance(result, dict) and result.get('error'):
+            result = self._make_api_call(
+                method='GET',
+                endpoint='/v3/projects',
+                params={'page': page, 'pageSize': min(page_size, 500)},
+                use_cache=use_cache,
+                cache_ttl=600
+            )
+        
         return result
+
     
     def query_items(
 
